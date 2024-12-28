@@ -24,6 +24,7 @@ const ChatMenu = () => {
       ],
     },
   ]);
+  const [selectedOption, setSelectedOption] = useState(null);
 
   const handleUserInput = (field, value) => {
     setUserInfo((prev) => ({
@@ -65,6 +66,9 @@ const ChatMenu = () => {
 
   const handleOptionClick = async (optionText) => {
     if (!optionText) return;
+
+    // Set the selected option when clicked
+    setSelectedOption(optionText);
 
     // Add user's selection to chat
     setChatHistory((prev) => [
@@ -217,6 +221,7 @@ ${semesterResult.subjects
   };
 
   const handleClearChat = () => {
+    setSelectedOption(null);
     setChatHistory([
       {
         type: "bot",
@@ -290,9 +295,20 @@ ${semesterResult.subjects
                           <button
                             key={optIndex}
                             onClick={() => handleOptionClick(option)}
-                            className={`bg-indigo-600 text-white px-4 py-2 rounded-full hover:bg-indigo-700 text-sm ${
+                            disabled={
+                              !option.startsWith("Semester") &&
+                              (option === selectedOption ||
+                                (selectedOption && selectedOption !== option))
+                            }
+                            className={`px-4 py-2 rounded-full text-sm ${
                               chat.options.length === 8 ? "w-full" : "w-fit"
-                            }`}
+                            } ${
+                              !option.startsWith("Semester") &&
+                              (option === selectedOption ||
+                                (selectedOption && selectedOption !== option))
+                                ? "bg-gray-400 cursor-not-allowed"
+                                : "bg-indigo-600 hover:bg-indigo-700"
+                            } text-white`}
                           >
                             {option}
                           </button>
