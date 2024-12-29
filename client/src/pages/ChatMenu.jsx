@@ -16,15 +16,11 @@ const ChatMenu = () => {
     {
       type: "bot",
       title: "Welcome to Student Portal",
-      isUserInput: true,
-      inputFields: [
-        { label: "Name", key: "name", type: "text" },
-        { label: "Roll Number", key: "rollNumber", type: "text" },
-        { label: "Date of Birth", key: "dateOfBirth", type: "date" },
-      ],
+      options: ["Student", "News", "Event"],
     },
   ]);
   const [selectedOption, setSelectedOption] = useState(null);
+  const [disabledOptions, setDisabledOptions] = useState([]);
 
   const handleUserInput = (field, value) => {
     setUserInfo((prev) => ({
@@ -39,18 +35,8 @@ const ChatMenu = () => {
       return;
     }
 
-    // Clear existing chat and start fresh with new user info
-    setChatHistory([
-      {
-        type: "bot",
-        title: "Welcome to Student Portal",
-        isUserInput: true,
-        inputFields: [
-          { label: "Name", key: "name", type: "text" },
-          { label: "Roll Number", key: "rollNumber", type: "text" },
-          { label: "Date of Birth", key: "dateOfBirth", type: "date" },
-        ],
-      },
+    setChatHistory((prev) => [
+      ...prev,
       {
         type: "user",
         text: `Name: ${userInfo.name}, Roll: ${userInfo.rollNumber}, DOB: ${userInfo.dateOfBirth}`,
@@ -67,8 +53,21 @@ const ChatMenu = () => {
   const handleOptionClick = async (optionText) => {
     if (!optionText) return;
 
-    // Set the selected option when clicked
     setSelectedOption(optionText);
+
+    // If one of the main options is clicked, disable all three
+    if (["Results", "Fee Details", "Student Details"].includes(optionText)) {
+      setDisabledOptions((prev) => [
+        ...prev,
+        "Results",
+        "Fee Details",
+        "Student Details",
+      ]);
+    }
+    // For other non-semester options, just disable the clicked one
+    else if (!optionText.startsWith("Semester")) {
+      setDisabledOptions((prev) => [...prev, optionText]);
+    }
 
     // Add user's selection to chat
     setChatHistory((prev) => [
@@ -78,6 +77,45 @@ const ChatMenu = () => {
         text: optionText,
       },
     ]);
+
+    // Handle main menu options
+    switch (optionText) {
+      case "Student":
+        setChatHistory((prev) => [
+          ...prev,
+          {
+            type: "bot",
+            title: "Please provide your details",
+            isUserInput: true,
+            inputFields: [
+              { label: "Name", key: "name", type: "text" },
+              { label: "Roll Number", key: "rollNumber", type: "text" },
+              { label: "Date of Birth", key: "dateOfBirth", type: "date" },
+            ],
+          },
+        ]);
+        return;
+      case "News":
+        setChatHistory((prev) => [
+          ...prev,
+          {
+            type: "bot",
+            title: "News",
+            text: "Latest news will be displayed here.",
+          },
+        ]);
+        return;
+      case "Event":
+        setChatHistory((prev) => [
+          ...prev,
+          {
+            type: "bot",
+            title: "Events",
+            text: "Upcoming events will be displayed here.",
+          },
+        ]);
+        return;
+    }
 
     // If Results is clicked, show semester options
     if (optionText === "Results") {
@@ -222,16 +260,12 @@ ${semesterResult.subjects
 
   const handleClearChat = () => {
     setSelectedOption(null);
+    setDisabledOptions([]); // Reset disabled options
     setChatHistory([
       {
         type: "bot",
         title: "Welcome to Student Portal",
-        isUserInput: true,
-        inputFields: [
-          { label: "Name", key: "name", type: "text" },
-          { label: "Roll Number", key: "rollNumber", type: "text" },
-          { label: "Date of Birth", key: "dateOfBirth", type: "date" },
-        ],
+        options: ["Student", "News", "Event"],
       },
     ]);
     setUserInfo({
@@ -243,10 +277,10 @@ ${semesterResult.subjects
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen relative">
       <div className="flex justify-center items-start pt-8 flex-1 bg-indigo-50">
-        <div className="w-[90%] max-w-[540px] h-[560px] bg-white rounded-3xl p-6 shadow-lg">
-          <div className="flex flex-col space-y-6 h-full overflow-y-auto pr-2">
+        <div className="w-[90%] max-w-[540px] h-[560px] bg-white rounded-3xl p-6 shadow-lg relative">
+          <div className="flex flex-col space-y-6 h-full overflow-y-auto pr-2 pb-16">
             {chatHistory.map((chat, index) => (
               <div key={index} className="flex flex-col space-y-3">
                 {chat.type === "bot" && (
@@ -296,16 +330,32 @@ ${semesterResult.subjects
                             key={optIndex}
                             onClick={() => handleOptionClick(option)}
                             disabled={
-                              !option.startsWith("Semester") &&
-                              (option === selectedOption ||
-                                (selectedOption && selectedOption !== option))
+                              // Disable if option is in disabledOptions array
+                              disabledOptions.includes(option) ||
+                              // Disable main menu options (Student, News, Event) after selection
+                              (!option.startsWith("Semester") &&
+                                ![
+                                  "Results",
+                                  "Fee Details",
+                                  "Student Details",
+                                ].includes(option) &&
+                                (option === selectedOption ||
+                                  (selectedOption &&
+                                    selectedOption !== option)))
                             }
                             className={`px-4 py-2 rounded-full text-sm ${
                               chat.options.length === 8 ? "w-full" : "w-fit"
                             } ${
-                              !option.startsWith("Semester") &&
-                              (option === selectedOption ||
-                                (selectedOption && selectedOption !== option))
+                              disabledOptions.includes(option) ||
+                              (!option.startsWith("Semester") &&
+                                ![
+                                  "Results",
+                                  "Fee Details",
+                                  "Student Details",
+                                ].includes(option) &&
+                                (option === selectedOption ||
+                                  (selectedOption &&
+                                    selectedOption !== option)))
                                 ? "bg-gray-400 cursor-not-allowed"
                                 : "bg-indigo-600 hover:bg-indigo-700"
                             } text-white`}
