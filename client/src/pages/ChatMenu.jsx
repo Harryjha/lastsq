@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 
 const ChatMenu = () => {
+  
   const [userInfo, setUserInfo] = useState({
     name: "",
     rollNumber: "",
@@ -33,7 +34,7 @@ const ChatMenu = () => {
     // Here you can add validation if needed
     if (!userInfo.name || !userInfo.rollNumber || !userInfo.dateOfBirth) {
       return;
-    }
+    } 
 
     setChatHistory((prev) => [
       ...prev,
@@ -144,7 +145,7 @@ const ChatMenu = () => {
       const semesterNumber = optionText.split(" ")[1];
       try {
         const response = await fetch(
-          `http://localhost:5000/api/student/${userInfo.rollNumber}/results`,
+          `http://localhost:5001/api/student/${userInfo.rollNumber}/results`,
           {
             method: "GET",
             headers: {
@@ -226,7 +227,7 @@ ${semesterResult.subjects
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/student/${userInfo.rollNumber}${endpoint}`,
+        `http://localhost:5001/api/student/${userInfo.rollNumber}${endpoint}`,
         {
           method: "GET",
           headers: {
