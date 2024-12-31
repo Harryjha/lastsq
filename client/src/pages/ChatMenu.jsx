@@ -3,9 +3,7 @@ import React, { useState } from "react";
 const ChatMenu = () => {
   
   const [userInfo, setUserInfo] = useState({
-    name: "", 
     rollNumber: "",
-    dateOfBirth: "",
   });
   const [isUserVerified, setIsUserVerified] = useState(false);
   const [menuItems, setMenuItems] = useState([]);
@@ -22,6 +20,7 @@ const ChatMenu = () => {
   ]);
   const [selectedOption, setSelectedOption] = useState(null);
   const [disabledOptions, setDisabledOptions] = useState([]);
+  const [inputEnabled, setInputEnabled] = useState(false);
 
   const handleUserInput = (field, value) => {
     setUserInfo((prev) => ({
@@ -31,16 +30,16 @@ const ChatMenu = () => {
   };
 
   const handleSubmitUserInfo = async () => {
-    // Here you can add validation if needed
-    if (!userInfo.name || !userInfo.rollNumber || !userInfo.dateOfBirth) {
+    if (!userInfo.rollNumber) {
       return;
     } 
 
+    setInputEnabled(false);
     setChatHistory((prev) => [
       ...prev,
       {
         type: "user",
-        text: `Name: ${userInfo.name}, Roll: ${userInfo.rollNumber}, DOB: ${userInfo.dateOfBirth}`,
+        text: `Appl: ${userInfo.rollNumber}`,
       },
       {
         type: "bot",
@@ -98,17 +97,12 @@ const ChatMenu = () => {
       case "B.Tech":
       case "M.Tech":
       case "Others":
+        setInputEnabled(true);
         setChatHistory((prev) => [
           ...prev,
           {
             type: "bot",
-            title: "Please provide your details",
-            isUserInput: true,
-            inputFields: [
-              { label: "Name", key: "name", type: "text" },
-              { label: "Roll Number", key: "rollNumber", type: "text" },
-              { label: "Date of Birth", key: "dateOfBirth", type: "date" },
-            ],
+            title: "Please provide your Application  Number",
           },
         ]);
         return;
@@ -286,9 +280,7 @@ ${semesterResult.subjects
       },
     ]);
     setUserInfo({
-      name: "",
       rollNumber: "",
-      dateOfBirth: "",
     });
     setIsUserVerified(false);
   };
@@ -305,36 +297,7 @@ ${semesterResult.subjects
                     <div className="bg-emerald-600 text-white px-6 py-3 rounded-full w-fit">
                       {chat.title}
                     </div>
-                    {chat.isUserInput ? (
-                      <div className="flex flex-col space-y-3">
-                        {chat.inputFields.map((field) => (
-                          <input
-                            key={field.key}
-                            type={field.type}
-                            placeholder={field.label}
-                            value={userInfo[field.key]}
-                            onChange={(e) =>
-                              handleUserInput(field.key, e.target.value)
-                            }
-                            className="border p-2 rounded-lg"
-                          />
-                        ))}
-                        <div className="flex space-x-3">
-                          <button
-                            onClick={handleSubmitUserInfo}
-                            className="bg-indigo-600 text-white px-6 py-3 rounded-full hover:bg-indigo-700"
-                          >
-                            Submit
-                          </button>
-                          <button
-                            onClick={handleClearChat}
-                            className="bg-red-500 text-white px-6 py-3 rounded-full hover:bg-red-600"
-                          >
-                            Clear Chat
-                          </button>
-                        </div>
-                      </div>
-                    ) : chat.options ? (
+                    {chat.options ? (
                       <div
                         className={`grid ${
                           chat.options.length === 8
@@ -399,6 +362,32 @@ ${semesterResult.subjects
                 )}
               </div>
             ))}
+          </div>
+          
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t">
+            <div className="flex space-x-3">
+              <input
+                type="text"
+                placeholder="Enter Here"
+                value={userInfo.rollNumber}
+                onChange={(e) => handleUserInput('rollNumber', e.target.value)}
+                disabled={!inputEnabled}
+                className={`border p-2 rounded-lg flex-grow ${
+                  !inputEnabled ? 'bg-gray-100' : 'bg-white'
+                }`}
+              />
+              <button
+                onClick={handleSubmitUserInfo}
+                disabled={!inputEnabled}
+                className={`px-6 py-2 rounded-full ${
+                  !inputEnabled
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-indigo-600 hover:bg-indigo-700'
+                } text-white`}
+              >
+                Submit
+              </button>
+            </div>
           </div>
         </div>
       </div>
