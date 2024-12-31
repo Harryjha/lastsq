@@ -5,7 +5,7 @@ const menuItemSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true
-  },
+  },    
   title: [String],
   options: [String],
   links: [String],  // URLs for each option

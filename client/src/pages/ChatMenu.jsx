@@ -3,7 +3,7 @@ import React, { useState } from "react";
 const ChatMenu = () => {
   
   const [userInfo, setUserInfo] = useState({
-    name: "",
+    name: "", 
     rollNumber: "",
     dateOfBirth: "",
   });
@@ -65,6 +65,10 @@ const ChatMenu = () => {
         "Student Details",
       ]);
     }
+    // If one of the program options is clicked, disable all program options
+    else if (["B.Tech", "M.Tech", "Others"].includes(optionText)) {
+      setDisabledOptions((prev) => [...prev, "B.Tech", "M.Tech", "Others"]);
+    }
     // For other non-semester options, just disable the clicked one
     else if (!optionText.startsWith("Semester")) {
       setDisabledOptions((prev) => [...prev, optionText]);
@@ -82,6 +86,18 @@ const ChatMenu = () => {
     // Handle main menu options
     switch (optionText) {
       case "Student":
+        setChatHistory((prev) => [
+          ...prev,
+          {
+            type: "bot",
+            title: "Select your program",
+            options: ["B.Tech", "M.Tech", "Others"],
+          },
+        ]);
+        return;
+      case "B.Tech":
+      case "M.Tech":
+      case "Others":
         setChatHistory((prev) => [
           ...prev,
           {
@@ -331,32 +347,34 @@ ${semesterResult.subjects
                             key={optIndex}
                             onClick={() => handleOptionClick(option)}
                             disabled={
-                              // Disable if option is in disabledOptions array
-                              disabledOptions.includes(option) ||
-                              // Disable main menu options (Student, News, Event) after selection
-                              (!option.startsWith("Semester") &&
-                                ![
-                                  "Results",
-                                  "Fee Details",
-                                  "Student Details",
-                                ].includes(option) &&
-                                (option === selectedOption ||
-                                  (selectedOption &&
-                                    selectedOption !== option)))
+                              // Disable if any option in the same group has been selected
+                              selectedOption && 
+                              (
+                                // For program options (B.Tech, M.Tech, Others)
+                                (["B.Tech", "M.Tech", "Others"].includes(option) && 
+                                 ["B.Tech", "M.Tech", "Others"].includes(selectedOption)) ||
+                                // For main menu options (Student, News, Event)
+                                (["Student", "News", "Event"].includes(option) && 
+                                 ["Student", "News", "Event"].includes(selectedOption)) ||
+                                // For result options (Results, Fee Details, Student Details)
+                                (["Results", "Fee Details", "Student Details"].includes(option) && 
+                                 ["Results", "Fee Details", "Student Details"].includes(selectedOption))
+                              ) &&
+                              option !== selectedOption
                             }
                             className={`px-4 py-2 rounded-full text-sm ${
                               chat.options.length === 8 ? "w-full" : "w-fit"
                             } ${
-                              disabledOptions.includes(option) ||
-                              (!option.startsWith("Semester") &&
-                                ![
-                                  "Results",
-                                  "Fee Details",
-                                  "Student Details",
-                                ].includes(option) &&
-                                (option === selectedOption ||
-                                  (selectedOption &&
-                                    selectedOption !== option)))
+                              selectedOption && 
+                              (
+                                (["B.Tech", "M.Tech", "Others"].includes(option) && 
+                                 ["B.Tech", "M.Tech", "Others"].includes(selectedOption)) ||
+                                (["Student", "News", "Event"].includes(option) && 
+                                 ["Student", "News", "Event"].includes(selectedOption)) ||
+                                (["Results", "Fee Details", "Student Details"].includes(option) && 
+                                 ["Results", "Fee Details", "Student Details"].includes(selectedOption))
+                              ) &&
+                              option !== selectedOption
                                 ? "bg-gray-400 cursor-not-allowed"
                                 : "bg-indigo-600 hover:bg-indigo-700"
                             } text-white`}
