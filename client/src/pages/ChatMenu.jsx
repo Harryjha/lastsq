@@ -4,6 +4,7 @@ const ChatMenu = () => {
 
 const [userInfo, setUserInfo] = useState({
 rollNumber: "",
+program: "",
 });
 const [isUserVerified, setIsUserVerified] = useState(false);
 const [menuItems, setMenuItems] = useState([]);
@@ -30,16 +31,37 @@ setUserInfo((prev) => ({
 };
 
 const handleSubmitUserInfo = async () => {
-if (!userInfo.rollNumber) {
+if (!userInfo.rollNumber || !userInfo.program) {
 return;
 }
 
+try {
+console.log('Submitting with:', userInfo);
+
+const response = await fetch(
+`http://localhost:8080/api/v1/student/getall?Rollno=${userInfo.rollNumber}&program=${userInfo.program}`,
+{
+method: "GET",
+headers: {
+"Content-Type": "application/json",
+}
+});
+
+const data = await response.json();
+console.log('API Response:', data);
+
+if (data.success) {
 setInputEnabled(false);
 setChatHistory((prev) => [
 ...prev,
 {
 type: "user",
-text: `Appl: ${userInfo.rollNumber}`,
+text: `Roll No: ${userInfo.rollNumber}`,
+},
+{
+type: "bot",
+title: "Student Verified",
+text: `Welcome ${data.data[0].name}!`,
 },
 {
 type: "bot",
@@ -48,12 +70,60 @@ options: ["Results", "Fee Details", "Student Details"],
 },
 ]);
 setIsUserVerified(true);
+} else {
+setChatHistory((prev) => [
+...prev,
+{
+type: "bot",
+title: "Error",
+text: `Invalid combination. Please ensure you're entering a valid ${userInfo.program} roll number.`,
+},
+]);
+// Reset roll number but keep the program
+setUserInfo(prev => ({
+...prev,
+rollNumber: ""
+}));
+}
+} catch (error) {
+console.error("Error verifying student:", error);
+setChatHistory((prev) => [
+...prev,
+{
+type: "bot",
+title: "Error",
+text: "Failed to verify student. Please try again.",
+},
+]);
+}
 };
 
 const handleOptionClick = async (optionText) => {
 if (!optionText) return;
 
 setSelectedOption(optionText);
+
+// Handle program selection (B.Tech, M.Tech, Others)
+if (["B.Tech", "M.Tech", "Others"].includes(optionText)) {
+setUserInfo(prev => ({
+...prev,
+program: optionText
+}));
+setInputEnabled(true);
+setChatHistory((prev) => [
+...prev,
+{
+type: "user",
+text: `Selected Program: ${optionText}`,
+},
+{
+type: "bot",
+title: "Please provide your Application Number",
+text: `Enter your ${optionText} roll number`,
+},
+]);
+return;
+}
 
 // If one of the main options is clicked, disable all three
 if (["Results", "Fee Details", "Student Details"].includes(optionText)) {
@@ -67,6 +137,19 @@ setDisabledOptions((prev) => [
 // If one of the program options is clicked, disable all program options
 else if (["B.Tech", "M.Tech", "Others"].includes(optionText)) {
 setDisabledOptions((prev) => [...prev, "B.Tech", "M.Tech", "Others"]);
+setUserInfo(prev => ({
+...prev,
+program: optionText
+}));
+setInputEnabled(true);
+setChatHistory((prev) => [
+...prev,
+{
+type: "bot",
+title: "Please provide your Application Number",
+},
+]);
+return;
 }
 // For other non-semester options, just disable the clicked one
 else if (!optionText.startsWith("Semester")) {
@@ -152,138 +235,143 @@ return;
 
 // Handle semester selection
 if (optionText.startsWith("Semester")) {
-const semesterNumber = optionText.split(" ")[1];
-try {
-const response = await fetch(
-  `http://localhost:8080/api/v1/student/getresults?Rollno=${userInfo.rollNumber}`,
-{
-method: "GET",
-headers: {
-"Content-Type": "application/json",
-},
-}
-);
+    const semesterNumber = optionText.split(" ")[1];
+    try {
+        const response = await fetch(
+            `http://localhost:8080/api/v1/student/getresults?Rollno=${userInfo.rollNumber}&program=${userInfo.program}`,
+            {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            }
+        );
 
-const data = await response.json();
-console.log('API Response:', data);
+        const data = await response.json();
+        console.log('Results API Response:', data);
 
-// Check if data exists and has the expected structure
-if (!data) {
-throw new Error('No data received from server');
-}
+        if (!data.success) {
+            throw new Error(data.message);
+        }
 
-// Adjust this based on your actual API response structure
-const results = data.results || data.data || data;
+        // Find the specific semester result
+        const semesterResult = data.data.find(
+            (result) => result.semester === parseInt(semesterNumber)
+        );
 
-if (!Array.isArray(results)) {
-throw new Error(`Invalid data format. Expected array, got: ${typeof results}`);
-}
+        if (!semesterResult) {
+            setChatHistory((prev) => [
+                ...prev,
+                {
+                    type: "bot",
+                    title: "No Results Found",
+                    text: `No results available for Semester ${semesterNumber}`,
+                },
+            ]);
+            return;
+        }
 
-const semesterResult = results.find(
-(result) => result.semester === parseInt(semesterNumber)
-);
-
-if (!semesterResult) {
-setChatHistory((prev) => [
-...prev,
-{
-type: "bot",
-title: "No Results Found",
-text: `No results available for ${optionText}`,
-},
-]);
-return;
-}
-
-// Add null check before accessing properties
-const resultDisplay = `
+        const resultDisplay = `
 Semester ${semesterNumber} Results
 ----------------------------------------
 Total Marks: ${semesterResult.totalMarks || 'N/A'}
 Percentage: ${semesterResult.percentage || 'N/A'}%
 Result: ${semesterResult.result || 'N/A'}
-
-Subject-wise Marks:
-${(semesterResult.subjects || [])
-  .map(
-    (subject) =>
-      `${(subject.name || 'Unknown').padEnd(20)} | ${(subject.marks || 'N/A').toString().padEnd(5)} | ${
-        subject.grade || 'N/A'
-      }`
-  )
-  .join("\n")}
 `;
 
-setChatHistory((prev) => [
-...prev,
-{
-type: "bot",
-title: `Semester ${semesterNumber} Results`,
-text: resultDisplay,
-},
-]);
-} catch (error) {
-console.error("Error fetching results:", error);
-console.error("Full error details:", {
-message: error.message,
-stack: error.stack
-});
-setChatHistory((prev) => [
-...prev,
-{
-type: "bot",
-title: "Error",
-text: `Failed to fetch results: ${error.message}. Please check the console for more details.`,
-},
-]);
-}
-return;
+        setChatHistory((prev) => [
+            ...prev,
+            {
+                type: "bot",
+                title: `Semester ${semesterNumber} Results`,
+                text: resultDisplay,
+            },
+        ]);
+    } catch (error) {
+        console.error("Error fetching results:", error);
+        setChatHistory((prev) => [
+            ...prev,
+            {
+                type: "bot",
+                title: "Error",
+                text: `Failed to fetch results: ${error.message}`,
+            },
+        ]);
+    }
+    return;
 }
 
 // Handle other options (Fee Details, Student Details)
 try {
-let endpoint;
-switch (optionText) {
-case "Fee Details":
-endpoint = `/getfees`;
-break;
-case "Student Details":
-endpoint = `/getall`;
-break;
-default:
-return;
-}
+    let endpoint;
+    switch (optionText) {
+        case "Fee Details":
+            endpoint = "getfees";
+            break;
+        case "Student Details":
+            endpoint = "getall";
+            break;
+        default:
+            return;
+    }
 
-const response = await fetch(
-`http://localhost:8080/api/v1/student/${endpoint}?Rollno=${userInfo.rollNumber}`,
-{
-method: "GET",
-headers: {
-"Content-Type": "application/json",
-},
-}
-);
+    const response = await fetch(
+        `http://localhost:8080/api/v1/student/${endpoint}?Rollno=${userInfo.rollNumber}&program=${userInfo.program}`,
+        {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        }
+    );
 
-const data = await response.json();
+    const data = await response.json();
+    console.log('API Response:', data);
 
-setChatHistory((prev) => [
-...prev,
-{
-type: "bot",
-title: `${optionText} Information`,
-text: JSON.stringify(data, null, 2),
-},
-]);
+    if (!data.success) {
+        throw new Error(data.message);
+    }
+
+    if (optionText === "Fee Details") {
+        // Format the fees display with number checks
+        const feesDisplay = `
+Fees Details
+----------------------------------------
+Due Amount: ₹${Number(data.data.dueAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+Paid Amount: ₹${Number(data.data.paidAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+Balance: ₹${Number(data.data.balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+Status: ${data.data.status}
+`;
+
+        setChatHistory((prev) => [
+            ...prev,
+            {
+                type: "bot",
+                title: "Fees Information",
+                text: feesDisplay,
+            },
+        ]);
+    } else {
+        // Handle Student Details
+        setChatHistory((prev) => [
+            ...prev,
+            {
+                type: "bot",
+                title: `${optionText} Information`,
+                text: JSON.stringify(data.data, null, 2),
+            },
+        ]);
+    }
 } catch (error) {
-console.error("Error fetching data:", error);
-setChatHistory((prev) => [
-...prev,
-{
-type: "bot",
-title: "Error",
-text: "Failed to fetch data. Please try again.",
-},
-]);
+    console.error("Error fetching data:", error);
+    setChatHistory((prev) => [
+        ...prev,
+        {
+            type: "bot",
+            title: "Error",
+            text: `Failed to fetch data: ${error.message}`,
+        },
+    ]);
 }
 };
 
@@ -299,6 +387,7 @@ options: ["Student", "News", "Event"],
 ]);
 setUserInfo({
 rollNumber: "",
+program: "",
 });
 setIsUserVerified(false);
 };

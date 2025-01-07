@@ -28,6 +28,8 @@ yarn-error.log*
 .vscode/
 *.swp
 *.swo
+# db
+db.js
 
 # OS generated files
 .DS_Store
@@ -37,6 +39,3 @@ yarn-error.log*
 .Trashes
 ehthumbs.db
 Thumbs.db
-# db
-
-/config/db.js

@@ -1,5 +1,5 @@
 const mysql = require("mysql2/promise"); // Use promise-based mysql2
-
+ 
 const mysqlPool = mysql.createPool({
     host: "localhost",
     user: "root",
